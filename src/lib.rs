@@ -152,7 +152,7 @@ pub mod mem {
 
         /// Get a session from the storage backend.
         async fn load_session(&self, jar: &cookie::CookieJar) -> Result<Session, Self::Error> {
-            let id = match dbg!(jar).get("session") {
+            let id = match jar.get("session") {
                 Some(cookie) => Uuid::parse_str(cookie.value()),
                 None => return Err(Error::new(ErrorKind::Other, "No session cookie found")),
             };
