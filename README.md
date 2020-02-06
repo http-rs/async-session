@@ -61,6 +61,12 @@ look at some of these issues:
 [good-first-issue]: https://github.com/http-rs/async-session/labels/good%20first%20issue
 [help-wanted]: https://github.com/http-rs/async-session/labels/help%20wanted
 
+## Acknowledgements
+
+This work is based on the work initiated by
+[@chrisdickinson](https://github.com/chrisdickinson) in
+[tide#266](https://github.com/http-rs/tide/pull/266).
+
 ## License
 
 <sup>
