@@ -1,0 +1,20 @@
+[package]
+name = "async-session"
+version = "1.0.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/http-rs/async-session"
+documentation = "https://docs.rs/async-session"
+description = "Async session support with pluggable middleware"
+readme = "README.md"
+edition = "2018"
+keywords = []
+categories = []
+authors = [
+    "Yoshua Wuyts <yoshuawuyts@gmail.com>"
+]
+
+[features]
+
+[dependencies]
+
+[dev-dependencies]
