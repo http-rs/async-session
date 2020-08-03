@@ -55,13 +55,15 @@ use std::{
 /// ```
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session {
-    #[serde(skip)]
-    cookie_value: Option<String>,
     id: String,
     expiry: Option<DateTime<Utc>>,
     data: Arc<RwLock<HashMap<String, String>>>,
+
+    #[serde(skip)]
+    cookie_value: Option<String>,
     #[serde(skip)]
     data_changed: Arc<AtomicBool>,
+    #[serde(skip)]
     destroy: Arc<AtomicBool>,
 }
 
