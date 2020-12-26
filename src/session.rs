@@ -70,7 +70,7 @@ pub struct Session {
 impl Clone for Session {
     fn clone(&self) -> Self {
         Self {
-            cookie_value: None,
+            cookie_value: self.cookie_value.clone(),
             id: self.id.clone(),
             data: self.data.clone(),
             expiry: self.expiry,
