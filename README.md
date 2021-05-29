@@ -46,6 +46,12 @@
 $ cargo add async-session
 ```
 
+## Available implementations
+
+* [async-sqlx-session](https://crates.io/crates/async-sqlx-session) postgres & sqlite
+* [async-redis-session](https://crates.io/crates/async-redis-session)
+* [async-mongodb-session](https://crates.io/crates/async-mongodb-session)
+
 ## Safety
 This crate uses ``#![deny(unsafe_code)]`` to ensure everything is implemented in
 100% Safe Rust.

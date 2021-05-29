@@ -1,6 +1,6 @@
 use crate::{async_trait, log, Result, Session, SessionStore};
-use async_std::sync::{Arc, RwLock};
-use std::collections::HashMap;
+use async_lock::RwLock;
+use std::{collections::HashMap, sync::Arc};
 
 /// # in-memory session store
 /// Because there is no external
