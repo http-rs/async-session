@@ -41,16 +41,16 @@
   </h3>
 </div>
 
-## Installation
-```sh
-$ cargo add async-session
-```
-
-## Available implementations
+## Available session stores
 
 * [async-sqlx-session](https://crates.io/crates/async-sqlx-session) postgres & sqlite
 * [async-redis-session](https://crates.io/crates/async-redis-session)
 * [async-mongodb-session](https://crates.io/crates/async-mongodb-session)
+
+## Framework implementations
+
+* [tide::sessions](https://docs.rs/tide/latest/tide/sessions/index.html)
+* [warp-sessions](https://docs.rs/warp-sessions/latest/warp_sessions/)
 
 ## Safety
 This crate uses ``#![deny(unsafe_code)]`` to ensure everything is implemented in
