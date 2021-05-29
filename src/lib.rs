@@ -35,7 +35,7 @@
 // #![forbid(unsafe_code, future_incompatible)]
 // #![deny(missing_debug_implementations, nonstandard_style)]
 // #![warn(missing_docs, missing_doc_code_examples, unreachable_pub)]
-#![forbid(unsafe_code, future_incompatible)]
+#![forbid(unsafe_code)]
 #![deny(
     missing_debug_implementations,
     nonstandard_style,
@@ -64,7 +64,7 @@ pub use base64;
 pub use blake3;
 pub use chrono;
 pub use hmac;
-pub use kv_log_macro as log;
+pub use log;
 pub use serde;
 pub use serde_json;
 pub use sha2;
