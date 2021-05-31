@@ -49,7 +49,7 @@
 
 ## Framework implementations
 
-* [tide::sessions](https://docs.rs/tide/latest/tide/sessions/index.html)
+* [`tide::sessions`](https://docs.rs/tide/latest/tide/sessions/index.html)
 * [warp-sessions](https://docs.rs/warp-sessions/latest/warp_sessions/)
 
 ## Safety
