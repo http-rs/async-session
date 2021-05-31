@@ -37,6 +37,7 @@
 // #![warn(missing_docs, missing_doc_code_examples, unreachable_pub)]
 #![forbid(unsafe_code)]
 #![deny(
+    future_incompatible,
     missing_debug_implementations,
     nonstandard_style,
     missing_docs,
