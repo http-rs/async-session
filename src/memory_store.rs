@@ -7,7 +7,25 @@ use std::{collections::HashMap, sync::Arc};
 /// persistance, this session store is ephemeral and will be cleared
 /// on server restart.
 ///
-/// # ***DO NOT USE THIS IN A PRODUCTION DEPLOYMENT.***
+/// # ***READ THIS BEFORE USING IN A PRODUCTION DEPLOYMENT***
+///
+/// Storing sessions only in memory brings the following problems:
+///
+/// 1. All sessions must fit in available memory (important for high load services)
+/// 2. Sessions stored in memory are cleared only if a client calls [MemoryStore::destroy_session] or [MemoryStore::clear_store].
+///    If sessions are not cleaned up properly it might result in OOM
+/// 3. All sessions will be lost on shutdown
+/// 4. If the service is clustered particular session will be stored only on a single instance.
+///    This might be solved by using load balancers with sticky sessions.
+///    Unfortunately, this solution brings additional complexity especially if the connection is
+///    using secure transport since the load balancer has to perform SSL termination to understand
+///    where should it forward packets to
+///
+/// Example crates providing alternative implementations:
+/// - [async-sqlx-session](https://crates.io/crates/async-sqlx-session) postgres & sqlite
+/// - [async-redis-session](https://crates.io/crates/async-redis-session)
+/// - [async-mongodb-session](https://crates.io/crates/async-mongodb-session)
+///
 #[derive(Debug, Clone)]
 pub struct MemoryStore {
     inner: Arc<RwLock<HashMap<String, Session>>>,
