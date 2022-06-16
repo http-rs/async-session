@@ -19,7 +19,7 @@ use std::{
 /// and read exactly once in order to set the cookie value.
 ///
 /// ## Change tracking session tracks whether any of its inner data
-/// was changed since it was last serialized. Any sessoin store that
+/// was changed since it was last serialized. Any session store that
 /// does not undergo a serialization-deserialization cycle must call
 /// [`Session::reset_data_changed`] in order to reset the change tracker on
 /// an individual record.
