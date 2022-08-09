@@ -53,6 +53,7 @@
 * [`tide::sessions`](https://docs.rs/tide/latest/tide/sessions/index.html)
 * [warp-sessions](https://docs.rs/warp-sessions/latest/warp_sessions/)
 * [trillium-sessions](https://docs.trillium.rs/trillium_sessions)
+* [axum-sessions](https://docs.rs/axum_sessions)
 
 ## Safety
 This crate uses ``#![deny(unsafe_code)]`` to ensure everything is implemented in
