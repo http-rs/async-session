@@ -140,7 +140,7 @@ impl Session {
     pub fn id_from_cookie_value(string: &str) -> Result<String, base64::DecodeError> {
         let decoded = base64::decode(string)?;
         let hash = blake3::hash(&decoded);
-        Ok(base64::encode(&hash.as_bytes()))
+        Ok(base64::encode(hash.as_bytes()))
     }
 
     /// mark this session for destruction. the actual session record
@@ -297,8 +297,21 @@ impl Session {
     /// assert_eq!(session.len(), 1);
     /// ```
     pub fn len(&self) -> usize {
-        let data = self.data.read().unwrap();
-        data.len()
+        self.data.read().unwrap().len()
+    }
+
+    /// returns a boolean indicating whether there are zero elements in the session hashmap
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use async_session::Session;
+    /// let mut session = Session::new();
+    /// assert!(session.is_empty());
+    /// session.insert("key", 0);
+    /// assert!(!session.is_empty());
+    pub fn is_empty(&self) -> bool {
+        return self.data.read().unwrap().is_empty();
     }
 
     /// Generates a new id and cookie for this session
