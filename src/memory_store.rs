@@ -26,7 +26,7 @@ use std::{collections::HashMap, sync::Arc};
 /// - [async-redis-session](https://crates.io/crates/async-redis-session)
 /// - [async-mongodb-session](https://crates.io/crates/async-mongodb-session)
 ///
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct MemoryStore {
     inner: Arc<RwLock<HashMap<String, Session>>>,
 }
@@ -72,9 +72,7 @@ impl SessionStore for MemoryStore {
 impl MemoryStore {
     /// Create a new instance of MemoryStore
     pub fn new() -> Self {
-        Self {
-            inner: Arc::new(RwLock::new(HashMap::new())),
-        }
+        Self::default()
     }
 
     /// Performs session cleanup. This should be run on an
