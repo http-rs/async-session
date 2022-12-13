@@ -19,7 +19,7 @@ use crate::{async_trait, Result, Session, SessionStore};
 /// CookieStore, and noop. Destroying a session must be done at the
 /// cookie setting level, which is outside of the scope of this crate.
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct CookieStore;
 
 impl CookieStore {
@@ -32,7 +32,7 @@ impl CookieStore {
 #[async_trait]
 impl SessionStore for CookieStore {
     async fn load_session(&self, cookie_value: String) -> Result<Option<Session>> {
-        let serialized = base64::decode(&cookie_value)?;
+        let serialized = base64::decode(cookie_value)?;
         let session: Session = bincode::deserialize(&serialized)?;
         Ok(session.validate())
     }
