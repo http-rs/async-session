@@ -20,7 +20,7 @@ use time::OffsetDateTime as DateTime;
 /// and read exactly once in order to set the cookie value.
 ///
 /// ## Change tracking session tracks whether any of its inner data
-/// was changed since it was last serialized. Any sessoin store that
+/// was changed since it was last serialized. Any session store that
 /// does not undergo a serialization-deserialization cycle must call
 /// [`Session::reset_data_changed`] in order to reset the change tracker on
 /// an individual record.
@@ -157,7 +157,7 @@ impl Session {
     /// assert!(session.is_destroyed());
     /// # Ok(()) }) }
     pub fn destroy(&mut self) {
-        self.destroy.store(true, Ordering::Relaxed);
+        self.destroy.store(true, Ordering::SeqCst);
     }
 
     /// returns true if this session is marked for destruction
@@ -174,7 +174,7 @@ impl Session {
     /// # Ok(()) }) }
 
     pub fn is_destroyed(&self) -> bool {
-        self.destroy.load(Ordering::Relaxed)
+        self.destroy.load(Ordering::SeqCst)
     }
 
     /// Gets the session id
@@ -230,7 +230,7 @@ impl Session {
         let mut data = self.data.write().unwrap();
         if data.get(key) != Some(&value) {
             data.insert(key.to_string(), value);
-            self.data_changed.store(true, Ordering::Relaxed);
+            self.data_changed.store(true, Ordering::Release);
         }
     }
 
@@ -281,7 +281,7 @@ impl Session {
     pub fn remove(&mut self, key: &str) {
         let mut data = self.data.write().unwrap();
         if data.remove(key).is_some() {
-            self.data_changed.store(true, Ordering::Relaxed);
+            self.data_changed.store(true, Ordering::Release);
         }
     }
 
@@ -479,7 +479,7 @@ impl Session {
     /// # Ok(()) }) }
     /// ```
     pub fn data_changed(&self) -> bool {
-        self.data_changed.load(Ordering::Relaxed)
+        self.data_changed.load(Ordering::Acquire)
     }
 
     /// Resets `data_changed` dirty tracking. This is unnecessary for
@@ -503,7 +503,7 @@ impl Session {
     /// # Ok(()) }) }
     /// ```
     pub fn reset_data_changed(&self) {
-        self.data_changed.store(false, Ordering::Relaxed);
+        self.data_changed.store(false, Ordering::SeqCst);
     }
 
     /// Ensures that this session is not expired. Returns None if it is expired

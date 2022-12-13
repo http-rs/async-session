@@ -46,12 +46,15 @@
 * [async-sqlx-session](https://crates.io/crates/async-sqlx-session) postgres & sqlite
 * [async-redis-session](https://crates.io/crates/async-redis-session)
 * [async-mongodb-session](https://crates.io/crates/async-mongodb-session)
+* [async-session-r2d2](https://crates.io/crates/async-session-r2d2) - sqlite only
 
 ## Framework implementations
 
 * [`tide::sessions`](https://docs.rs/tide/latest/tide/sessions/index.html)
 * [warp-sessions](https://docs.rs/warp-sessions/latest/warp_sessions/)
 * [trillium-sessions](https://docs.trillium.rs/trillium_sessions)
+* [axum-sessions](https://docs.rs/axum_sessions)
+* [salvo-sessions](https://docs.rs/salvo_extra/latest/salvo_extra/session/index.html)
 
 ## Safety
 This crate uses ``#![deny(unsafe_code)]`` to ensure everything is implemented in
