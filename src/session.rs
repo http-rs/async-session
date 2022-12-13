@@ -1,13 +1,14 @@
-use chrono::{DateTime, Duration, Utc};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
+    convert::TryFrom,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, RwLock,
     },
 };
+use time::OffsetDateTime as DateTime;
 
 /// # The main session type.
 ///
@@ -56,7 +57,7 @@ use std::{
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session {
     id: String,
-    expiry: Option<DateTime<Utc>>,
+    expiry: Option<DateTime>,
     data: Arc<RwLock<HashMap<String, String>>>,
 
     #[serde(skip)]
@@ -368,7 +369,7 @@ impl Session {
     /// assert!(session.expiry().is_some());
     /// # Ok(()) }) }
     /// ```
-    pub fn expiry(&self) -> Option<&DateTime<Utc>> {
+    pub fn expiry(&self) -> Option<&DateTime> {
         self.expiry.as_ref()
     }
 
@@ -381,11 +382,11 @@ impl Session {
     /// # fn main() -> async_session::Result { async_std::task::block_on(async {
     /// let mut session = Session::new();
     /// assert_eq!(None, session.expiry());
-    /// session.set_expiry(chrono::Utc::now());
+    /// session.set_expiry(time::OffsetDateTime::now_utc());
     /// assert!(session.expiry().is_some());
     /// # Ok(()) }) }
     /// ```
-    pub fn set_expiry(&mut self, expiry: DateTime<Utc>) {
+    pub fn set_expiry(&mut self, expiry: DateTime) {
         self.expiry = Some(expiry);
     }
 
@@ -403,7 +404,7 @@ impl Session {
     /// # Ok(()) }) }
     /// ```
     pub fn expire_in(&mut self, ttl: std::time::Duration) {
-        self.expiry = Some(Utc::now() + Duration::from_std(ttl).unwrap());
+        self.expiry = Some(DateTime::now_utc() + ttl);
     }
 
     /// predicate function to determine if this session is
@@ -428,7 +429,7 @@ impl Session {
     /// ```
     pub fn is_expired(&self) -> bool {
         match self.expiry {
-            Some(expiry) => expiry < Utc::now(),
+            Some(expiry) => expiry < DateTime::now_utc(),
             None => false,
         }
     }
@@ -522,7 +523,12 @@ impl Session {
     /// ```
     /// Duration from now to the expiry time of this session
     pub fn expires_in(&self) -> Option<std::time::Duration> {
-        self.expiry?.signed_duration_since(Utc::now()).to_std().ok()
+        let dur = self.expiry? - DateTime::now_utc();
+        if dur.is_negative() {
+            None
+        } else {
+            std::time::Duration::try_from(dur).ok()
+        }
     }
 
     /// takes the cookie value and consume this session.
