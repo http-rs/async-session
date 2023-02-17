@@ -1,70 +1,75 @@
-use crate::{async_trait, log, Result, Session, SessionStore};
-use async_lock::RwLock;
-use std::{collections::HashMap, sync::Arc};
+use crate::{async_trait, Session, SessionStore};
+use dashmap::{mapref::entry::Entry::Occupied, DashMap};
+use std::sync::Arc;
 
-/// # in-memory session store
-/// Because there is no external
-/// persistance, this session store is ephemeral and will be cleared
-/// on server restart.
+/// # In-memory session store
 ///
-/// # ***READ THIS BEFORE USING IN A PRODUCTION DEPLOYMENT***
+/// Because there is no external persistance, this session store is
+/// ephemeral and will be cleared on server restart.
+///
+/// ## ***READ THIS BEFORE USING IN A PRODUCTION DEPLOYMENT***
 ///
 /// Storing sessions only in memory brings the following problems:
 ///
-/// 1. All sessions must fit in available memory (important for high load services)
+/// 1. All sessions must fit in available memory.
 /// 2. Sessions stored in memory are cleared only if a client calls [MemoryStore::destroy_session] or [MemoryStore::clear_store].
-///    If sessions are not cleaned up properly it might result in OOM
-/// 3. All sessions will be lost on shutdown
+///    If sessions are not cleaned up properly it might result in OOM.
+/// 3. All sessions will be lost on shutdown.
 /// 4. If the service is clustered particular session will be stored only on a single instance.
-///    This might be solved by using load balancers with sticky sessions.
-///    Unfortunately, this solution brings additional complexity especially if the connection is
-///    using secure transport since the load balancer has to perform SSL termination to understand
-///    where should it forward packets to
 ///
-/// Example crates providing alternative implementations:
-/// - [async-sqlx-session](https://crates.io/crates/async-sqlx-session) postgres & sqlite
-/// - [async-redis-session](https://crates.io/crates/async-redis-session)
-/// - [async-mongodb-session](https://crates.io/crates/async-mongodb-session)
+/// See the crate readme for preferable session stores.
 ///
 #[derive(Default, Debug, Clone)]
-pub struct MemoryStore {
-    inner: Arc<RwLock<HashMap<String, Session>>>,
+pub struct MemoryStore(Arc<DashMap<String, Session>>);
+
+#[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
+/// All errors that can occur in [`MemoryStore`]
+pub enum MemoryStoreError {
+    /// A base64 error
+    #[error(transparent)]
+    Base64(#[from] base64::DecodeError),
+
+    /// A json error
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
 }
 
 #[async_trait]
 impl SessionStore for MemoryStore {
-    async fn load_session(&self, cookie_value: String) -> Result<Option<Session>> {
+    type Error = MemoryStoreError;
+
+    async fn load_session(&self, cookie_value: String) -> Result<Option<Session>, Self::Error> {
         let id = Session::id_from_cookie_value(&cookie_value)?;
         log::trace!("loading session by id `{}`", id);
-        Ok(self
-            .inner
-            .read()
-            .await
-            .get(&id)
-            .cloned()
-            .and_then(Session::validate))
+        let Occupied(entry) = self.0.entry(id) else {
+            return Ok(None);
+        };
+
+        if entry.get().is_expired() {
+            entry.remove();
+            Ok(None)
+        } else {
+            Ok(Some(entry.get().clone()))
+        }
     }
 
-    async fn store_session(&self, session: Session) -> Result<Option<String>> {
+    async fn store_session(&self, mut session: Session) -> Result<Option<String>, Self::Error> {
         log::trace!("storing session by id `{}`", session.id());
-        self.inner
-            .write()
-            .await
-            .insert(session.id().to_string(), session.clone());
-
         session.reset_data_changed();
+        self.0.insert(session.id().to_string(), session.clone());
         Ok(session.into_cookie_value())
     }
 
-    async fn destroy_session(&self, session: Session) -> Result {
+    async fn destroy_session(&self, session: Session) -> Result<(), Self::Error> {
         log::trace!("destroying session by id `{}`", session.id());
-        self.inner.write().await.remove(session.id());
+        self.0.remove(session.id());
         Ok(())
     }
 
-    async fn clear_store(&self) -> Result {
+    async fn clear_store(&self) -> Result<(), Self::Error> {
         log::trace!("clearing memory store");
-        self.inner.write().await.clear();
+        self.0.clear();
         Ok(())
     }
 }
@@ -78,43 +83,24 @@ impl MemoryStore {
     /// Performs session cleanup. This should be run on an
     /// intermittent basis if this store is run for long enough that
     /// memory accumulation is a concern
-    pub async fn cleanup(&self) -> Result {
+    pub fn cleanup(&self) {
         log::trace!("cleaning up memory store...");
-        let ids_to_delete: Vec<_> = self
-            .inner
-            .read()
-            .await
-            .values()
-            .filter_map(|session| {
-                if session.is_expired() {
-                    Some(session.id().to_owned())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        log::trace!("found {} expired sessions", ids_to_delete.len());
-        for id in ids_to_delete {
-            self.inner.write().await.remove(&id);
-        }
-        Ok(())
+        self.0.retain(|_, session| !session.is_expired());
     }
 
     /// returns the number of elements in the memory store
     /// # Example
     /// ```rust
     /// # use async_session::{MemoryStore, Session, SessionStore};
-    /// # fn main() -> async_session::Result { async_std::task::block_on(async {
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> { async_std::task::block_on(async {
     /// let mut store = MemoryStore::new();
-    /// assert_eq!(store.count().await, 0);
+    /// assert_eq!(store.count(), 0);
     /// store.store_session(Session::new()).await?;
-    /// assert_eq!(store.count().await, 1);
+    /// assert_eq!(store.count(), 1);
     /// # Ok(()) }) }
     /// ```
-    pub async fn count(&self) -> usize {
-        let data = self.inner.read().await;
-        data.len()
+    pub fn count(&self) -> usize {
+        self.0.len()
     }
 }
 
@@ -124,7 +110,7 @@ mod tests {
     use async_std::task;
     use std::time::Duration;
     #[async_std::test]
-    async fn creating_a_new_session_with_no_expiry() -> Result {
+    async fn creating_a_new_session_with_no_expiry() -> Result<(), MemoryStoreError> {
         let store = MemoryStore::new();
         let mut session = Session::new();
         session.insert("key", "Hello")?;
@@ -139,7 +125,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn updating_a_session() -> Result {
+    async fn updating_a_session() -> Result<(), MemoryStoreError> {
         let store = MemoryStore::new();
         let mut session = Session::new();
 
@@ -157,18 +143,18 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn updating_a_session_extending_expiry() -> Result {
+    async fn updating_a_session_extending_expiry() -> Result<(), MemoryStoreError> {
         let store = MemoryStore::new();
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(1));
-        let original_expires = session.expiry().unwrap().clone();
+        let original_expires = *session.expiry().unwrap();
         let cookie_value = store.store_session(session).await?.unwrap();
 
         let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
 
         assert_eq!(session.expiry().unwrap(), &original_expires);
         session.expire_in(Duration::from_secs(3));
-        let new_expires = session.expiry().unwrap().clone();
+        let new_expires = *session.expiry().unwrap();
         assert_eq!(None, store.store_session(session).await?);
 
         let session = store.load_session(cookie_value.clone()).await?.unwrap();
@@ -181,7 +167,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn creating_a_new_session_with_expiry() -> Result {
+    async fn creating_a_new_session_with_expiry() -> Result<(), MemoryStoreError> {
         let store = MemoryStore::new();
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(3));
@@ -203,18 +189,18 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn destroying_a_single_session() -> Result {
+    async fn destroying_a_single_session() -> Result<(), MemoryStoreError> {
         let store = MemoryStore::new();
         for _ in 0..3i8 {
             store.store_session(Session::new()).await?;
         }
 
         let cookie = store.store_session(Session::new()).await?.unwrap();
-        assert_eq!(4, store.count().await);
+        assert_eq!(4, store.count());
         let session = store.load_session(cookie.clone()).await?.unwrap();
         store.destroy_session(session.clone()).await?;
         assert_eq!(None, store.load_session(cookie).await?);
-        assert_eq!(3, store.count().await);
+        assert_eq!(3, store.count());
 
         // attempting to destroy the session again is not an error
         assert!(store.destroy_session(session).await.is_ok());
@@ -222,15 +208,15 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn clearing_the_whole_store() -> Result {
+    async fn clearing_the_whole_store() -> Result<(), MemoryStoreError> {
         let store = MemoryStore::new();
         for _ in 0..3i8 {
             store.store_session(Session::new()).await?;
         }
 
-        assert_eq!(3, store.count().await);
+        assert_eq!(3, store.count());
         store.clear_store().await.unwrap();
-        assert_eq!(0, store.count().await);
+        assert_eq!(0, store.count());
 
         Ok(())
     }

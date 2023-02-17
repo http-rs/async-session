@@ -10,7 +10,7 @@
 //! ```
 //! use async_session::{Session, SessionStore, MemoryStore};
 //!
-//! # fn main() -> async_session::Result {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! # async_std::task::block_on(async {
 //! #
 //! // Init a new session store we can persist sessions to.
@@ -46,26 +46,18 @@
     unused_qualifications
 )]
 
-pub use anyhow::Error;
-/// An anyhow::Result with default return type of ()
-pub type Result<T = ()> = std::result::Result<T, Error>;
-
+#[cfg(feature = "cookie-store")]
 mod cookie_store;
+#[cfg(feature = "memory-store")]
 mod memory_store;
 mod session;
 mod session_store;
 
-pub use cookie_store::CookieStore;
-pub use memory_store::MemoryStore;
+#[cfg(feature = "cookie-store")]
+pub use cookie_store::{CookieStore, CookieStoreError};
+#[cfg(feature = "memory-store")]
+pub use memory_store::{MemoryStore, MemoryStoreError};
 pub use session::Session;
 pub use session_store::SessionStore;
 
 pub use async_trait::async_trait;
-pub use base64;
-pub use blake3;
-pub use hmac;
-pub use log;
-pub use serde;
-pub use serde_json;
-pub use sha2;
-pub use time;

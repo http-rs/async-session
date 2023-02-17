@@ -1,13 +1,14 @@
-use crate::{async_trait, Result, Session, SessionStore};
+use crate::{async_trait, Session, SessionStore};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 
 /// A session store that serializes the entire session into a Cookie.
 ///
 /// # ***This is not recommended for most production deployments.***
 ///
-/// This implementation uses [`bincode`](::bincode) to serialize the
-/// Session to decrease the size of the cookie. Note: There is a
-/// maximum of 4093 cookie bytes allowed _per domain_, so the cookie
-/// store is limited in capacity.
+/// This implementation uses [`bincode_json`](::bincode_json) to
+/// serialize the Session to decrease the size of the cookie. Note:
+/// There is a maximum of 4093 cookie bytes allowed _per domain_, so
+/// the cookie store is limited in capacity.
 ///
 /// **Note:** Currently, the data in the cookie is only signed, but *not
 /// encrypted*. If the contained session data is sensitive and
@@ -29,24 +30,43 @@ impl CookieStore {
     }
 }
 
+#[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
+/// All errors that can occur in the [`CookieStore`]
+pub enum CookieStoreError {
+    /// A bincode_json error
+    #[error(transparent)]
+    Bincode(#[from] bincode_json::Error),
+
+    /// A base64 error
+    #[error(transparent)]
+    Base64(#[from] base64::DecodeError),
+
+    /// A json error
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
+}
+
 #[async_trait]
 impl SessionStore for CookieStore {
-    async fn load_session(&self, cookie_value: String) -> Result<Option<Session>> {
-        let serialized = base64::decode(cookie_value)?;
-        let session: Session = bincode::deserialize(&serialized)?;
+    type Error = CookieStoreError;
+
+    async fn load_session(&self, cookie_value: String) -> Result<Option<Session>, Self::Error> {
+        let serialized = BASE64.decode(cookie_value)?;
+        let session: Session = bincode_json::from_slice(&serialized)?;
         Ok(session.validate())
     }
 
-    async fn store_session(&self, session: Session) -> Result<Option<String>> {
-        let serialized = bincode::serialize(&session)?;
-        Ok(Some(base64::encode(serialized)))
+    async fn store_session(&self, session: Session) -> Result<Option<String>, Self::Error> {
+        let serialized = bincode_json::to_vec(&session)?;
+        Ok(Some(BASE64.encode(serialized)))
     }
 
-    async fn destroy_session(&self, _session: Session) -> Result {
+    async fn destroy_session(&self, _session: Session) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    async fn clear_store(&self) -> Result {
+    async fn clear_store(&self) -> Result<(), Self::Error> {
         Ok(())
     }
 }
@@ -57,7 +77,7 @@ mod tests {
     use async_std::task;
     use std::time::Duration;
     #[async_std::test]
-    async fn creating_a_new_session_with_no_expiry() -> Result {
+    async fn creating_a_new_session_with_no_expiry() -> Result<(), CookieStoreError> {
         let store = CookieStore::new();
         let mut session = Session::new();
         session.insert("key", "Hello")?;
@@ -72,7 +92,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn updating_a_session() -> Result {
+    async fn updating_a_session() -> Result<(), CookieStoreError> {
         let store = CookieStore::new();
         let mut session = Session::new();
 
@@ -90,18 +110,18 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn updating_a_session_extending_expiry() -> Result {
+    async fn updating_a_session_extending_expiry() -> Result<(), CookieStoreError> {
         let store = CookieStore::new();
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(1));
-        let original_expires = session.expiry().unwrap().clone();
+        let original_expires = *session.expiry().unwrap();
         let cookie_value = store.store_session(session).await?.unwrap();
 
         let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
 
         assert_eq!(session.expiry().unwrap(), &original_expires);
         session.expire_in(Duration::from_secs(3));
-        let new_expires = session.expiry().unwrap().clone();
+        let new_expires = *session.expiry().unwrap();
         let cookie_value = store.store_session(session).await?.unwrap();
 
         let session = store.load_session(cookie_value.clone()).await?.unwrap();
@@ -114,7 +134,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn creating_a_new_session_with_expiry() -> Result {
+    async fn creating_a_new_session_with_expiry() -> Result<(), CookieStoreError> {
         let store = CookieStore::new();
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(3));
