@@ -2,7 +2,7 @@ use crate::{async_trait, Result, Session};
 
 /// An async session backend.
 #[async_trait]
-pub trait SessionStore: std::fmt::Debug + Send + Sync + Clone + 'static {
+pub trait SessionStore {
     /// Get a session from the storage backend.
     ///
     /// The input is expected to be the value of an identifying
