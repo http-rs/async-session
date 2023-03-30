@@ -8,9 +8,10 @@
 //! # Example
 //!
 //! ```
-//! use async_session::{Session, SessionStore, MemoryStore};
+//! use async_session::{Session, SessionStore};
+//! use async_session_memory_store::MemoryStore;
 //!
-//! # fn main() -> async_session::Result {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! # async_std::task::block_on(async {
 //! #
 //! // Init a new session store we can persist sessions to.
@@ -22,10 +23,10 @@
 //! assert!(session.data_changed());
 //!
 //! // retrieve the cookie value to store in a session cookie
-//! let cookie_value = store.store_session(session).await?.unwrap();
+//! let cookie_value = store.store_session(&mut session).await?.unwrap();
 //!
 //! // Retrieve the session using the cookie.
-//! let session = store.load_session(cookie_value).await?.unwrap();
+//! let session = store.load_session(&cookie_value).await?.unwrap();
 //! assert_eq!(session.get::<usize>("user_id").unwrap(), 1);
 //! assert!(!session.data_changed());
 //! #
@@ -46,26 +47,10 @@
     unused_qualifications
 )]
 
-pub use anyhow::Error;
-/// An anyhow::Result with default return type of ()
-pub type Result<T = ()> = std::result::Result<T, Error>;
-
-mod cookie_store;
-mod memory_store;
 mod session;
 mod session_store;
 
-pub use cookie_store::CookieStore;
-pub use memory_store::MemoryStore;
 pub use session::Session;
 pub use session_store::SessionStore;
 
 pub use async_trait::async_trait;
-pub use base64;
-pub use blake3;
-pub use hmac;
-pub use log;
-pub use serde;
-pub use serde_json;
-pub use sha2;
-pub use time;
