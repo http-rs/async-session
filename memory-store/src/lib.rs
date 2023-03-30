@@ -1,4 +1,4 @@
-use crate::{async_trait, Session, SessionStore};
+use async_session::{async_trait, Session, SessionStore};
 use dashmap::{mapref::entry::Entry::Occupied, DashMap};
 use std::sync::Arc;
 
@@ -92,7 +92,8 @@ impl MemoryStore {
     /// returns the number of elements in the memory store
     /// # Example
     /// ```rust
-    /// # use async_session::{MemoryStore, Session, SessionStore};
+    /// # use async_session::{Session, SessionStore};
+    /// # use async_session_memory_store::MemoryStore;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> { async_std::task::block_on(async {
     /// let mut store = MemoryStore::new();
     /// assert_eq!(store.count(), 0);

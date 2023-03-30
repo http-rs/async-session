@@ -1,4 +1,4 @@
-use crate::{async_trait, Session, SessionStore};
+use async_session::{async_trait, Session, SessionStore};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 
 /// A session store that serializes the entire session into a Cookie.

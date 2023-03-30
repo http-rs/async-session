@@ -8,7 +8,8 @@
 //! # Example
 //!
 //! ```
-//! use async_session::{Session, SessionStore, MemoryStore};
+//! use async_session::{Session, SessionStore};
+//! use async_session_memory_store::MemoryStore;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! # async_std::task::block_on(async {
@@ -46,17 +47,9 @@
     unused_qualifications
 )]
 
-#[cfg(feature = "cookie-store")]
-mod cookie_store;
-#[cfg(feature = "memory-store")]
-mod memory_store;
 mod session;
 mod session_store;
 
-#[cfg(feature = "cookie-store")]
-pub use cookie_store::{CookieStore, CookieStoreError};
-#[cfg(feature = "memory-store")]
-pub use memory_store::{MemoryStore, MemoryStoreError};
 pub use session::Session;
 pub use session_store::SessionStore;
 
