@@ -43,7 +43,7 @@
 
 ## Available session stores
 
-* [async-sqlx-session](https://crates.io/crates/async-sqlx-session) postgres & sqlite
+* [async-sqlx-session](https://crates.io/crates/async-sqlx-session) postgres, mysql & sqlite
 * [async-redis-session](https://crates.io/crates/async-redis-session)
 * [async-mongodb-session](https://crates.io/crates/async-mongodb-session)
 * [async-session-r2d2](https://crates.io/crates/async-session-r2d2) - sqlite only
