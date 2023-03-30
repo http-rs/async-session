@@ -58,6 +58,6 @@ pub use cookie_store::{CookieStore, CookieStoreError};
 #[cfg(feature = "memory-store")]
 pub use memory_store::{MemoryStore, MemoryStoreError};
 pub use session::Session;
-pub use session_store::{SessionStore};
+pub use session_store::SessionStore;
 
 pub use async_trait::async_trait;
