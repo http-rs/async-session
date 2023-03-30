@@ -581,6 +581,12 @@ impl Session {
     /// # Ok(()) }) }
     /// ```
     pub fn into_cookie_value(mut self) -> Option<String> {
+        self.take_cookie_value()
+    }
+
+    /// take the cookie value. this is generally only performed by a
+    /// session store.
+    pub fn take_cookie_value(&mut self) -> Option<String> {
         self.cookie_value.take()
     }
 }

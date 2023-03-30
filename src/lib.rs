@@ -22,10 +22,10 @@
 //! assert!(session.data_changed());
 //!
 //! // retrieve the cookie value to store in a session cookie
-//! let cookie_value = store.store_session(session).await?.unwrap();
+//! let cookie_value = store.store_session(&mut session).await?.unwrap();
 //!
 //! // Retrieve the session using the cookie.
-//! let session = store.load_session(cookie_value).await?.unwrap();
+//! let session = store.load_session(&cookie_value).await?.unwrap();
 //! assert_eq!(session.get::<usize>("user_id").unwrap(), 1);
 //! assert!(!session.data_changed());
 //! #
@@ -58,6 +58,6 @@ pub use cookie_store::{CookieStore, CookieStoreError};
 #[cfg(feature = "memory-store")]
 pub use memory_store::{MemoryStore, MemoryStoreError};
 pub use session::Session;
-pub use session_store::SessionStore;
+pub use session_store::{SessionStore};
 
 pub use async_trait::async_trait;

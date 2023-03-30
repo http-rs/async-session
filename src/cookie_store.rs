@@ -51,18 +51,18 @@ pub enum CookieStoreError {
 impl SessionStore for CookieStore {
     type Error = CookieStoreError;
 
-    async fn load_session(&self, cookie_value: String) -> Result<Option<Session>, Self::Error> {
+    async fn load_session(&self, cookie_value: &str) -> Result<Option<Session>, Self::Error> {
         let serialized = BASE64.decode(cookie_value)?;
         let session: Session = bincode_json::from_slice(&serialized)?;
         Ok(session.validate())
     }
 
-    async fn store_session(&self, session: Session) -> Result<Option<String>, Self::Error> {
-        let serialized = bincode_json::to_vec(&session)?;
+    async fn store_session(&self, session: &mut Session) -> Result<Option<String>, Self::Error> {
+        let serialized = bincode_json::to_vec(session)?;
         Ok(Some(BASE64.encode(serialized)))
     }
 
-    async fn destroy_session(&self, _session: Session) -> Result<(), Self::Error> {
+    async fn destroy_session(&self, _session: &mut Session) -> Result<(), Self::Error> {
         Ok(())
     }
 
@@ -82,8 +82,8 @@ mod tests {
         let mut session = Session::new();
         session.insert("key", "Hello")?;
         let cloned = session.clone();
-        let cookie_value = store.store_session(session).await?.unwrap();
-        let loaded_session = store.load_session(cookie_value).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
+        let loaded_session = store.load_session(&cookie_value).await?.unwrap();
         assert_eq!(cloned.id(), loaded_session.id());
         assert_eq!("Hello", &loaded_session.get::<String>("key").unwrap());
         assert!(!loaded_session.is_expired());
@@ -97,14 +97,14 @@ mod tests {
         let mut session = Session::new();
 
         session.insert("key", "value")?;
-        let cookie_value = store.store_session(session).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
 
-        let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let mut session = store.load_session(&cookie_value.clone()).await?.unwrap();
         session.insert("key", "other value")?;
 
-        let new_cookie_value = store.store_session(session).await?.unwrap();
-        let session = store.load_session(new_cookie_value).await?.unwrap();
-        assert_eq!(&session.get::<String>("key").unwrap(), "other value");
+        let new_cookie_value = store.store_session(&mut session).await?.unwrap();
+        let session = store.load_session(&new_cookie_value).await?.unwrap();
+        assert_eq!(&mut session.get::<String>("key").unwrap(), "other value");
 
         Ok(())
     }
@@ -115,20 +115,20 @@ mod tests {
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(1));
         let original_expires = *session.expiry().unwrap();
-        let cookie_value = store.store_session(session).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
 
-        let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let mut session = store.load_session(&cookie_value.clone()).await?.unwrap();
 
         assert_eq!(session.expiry().unwrap(), &original_expires);
         session.expire_in(Duration::from_secs(3));
         let new_expires = *session.expiry().unwrap();
-        let cookie_value = store.store_session(session).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
 
-        let session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let session = store.load_session(&cookie_value.clone()).await?.unwrap();
         assert_eq!(session.expiry().unwrap(), &new_expires);
 
         task::sleep(Duration::from_secs(3)).await;
-        assert_eq!(None, store.load_session(cookie_value).await?);
+        assert_eq!(None, store.load_session(&cookie_value).await?);
 
         Ok(())
     }
@@ -141,16 +141,16 @@ mod tests {
         session.insert("key", "value")?;
         let cloned = session.clone();
 
-        let cookie_value = store.store_session(session).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
 
-        let loaded_session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let loaded_session = store.load_session(&cookie_value.clone()).await?.unwrap();
         assert_eq!(cloned.id(), loaded_session.id());
         assert_eq!("value", &*loaded_session.get::<String>("key").unwrap());
 
         assert!(!loaded_session.is_expired());
 
         task::sleep(Duration::from_secs(3)).await;
-        assert_eq!(None, store.load_session(cookie_value).await?);
+        assert_eq!(None, store.load_session(&cookie_value).await?);
 
         Ok(())
     }
