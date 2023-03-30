@@ -49,7 +49,7 @@ use time::OffsetDateTime as DateTime;
 /// assert!(session.data_changed());
 /// # Ok(()) }) }
 /// ```
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Session {
     id: String,
     expiry: Option<DateTime>,
@@ -61,19 +61,6 @@ pub struct Session {
     data_changed: bool,
     #[serde(skip)]
     destroy: bool,
-}
-
-impl Clone for Session {
-    fn clone(&self) -> Self {
-        Self {
-            cookie_value: None,
-            id: self.id.clone(),
-            data: self.data.clone(),
-            expiry: self.expiry,
-            destroy: self.destroy,
-            data_changed: self.data_changed,
-        }
-    }
 }
 
 impl Default for Session {
